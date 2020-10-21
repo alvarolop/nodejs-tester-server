@@ -1,5 +1,7 @@
 # nodejs-tester-server
-This repository showcases how to create a container image with a Nodejs Hello World
+This repository showcases how to create a container image with a Nodejs Hello World.
+
+The code is based on the following repository from the Red Hat Software Collections: https://github.com/sclorg/s2i-nodejs-container/blob/master/12/README.md 
 
 
 ## 1. How to deploy app on OCP 
