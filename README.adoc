@@ -8,7 +8,17 @@ The code is based on the following repository from the Red Hat Software Collecti
 
 [source, bash]
 ----
-oc new-app nodejs:14~https://github.com/alvarolop/nodejs-tester-server
+# Create namespace for the application
+oc new-project istio-testing --display-name="Istio Testing"
+
+# Add your namespace to the SMMR
+oc apply -f ocp/ServiceMeshMember.yaml
+
+# Create application using s2i
+oc new-app nodejs:12~https://github.com/alvarolop/nodejs-tester-server
+
+# Autoinject sidecar using the Istio annotation
+oc patch deployment nodejs-tester-server --type='json' -p "[{\"op\": \"add\", \"path\": \"/spec/template/metadata/annotations\", \"value\": {\"sidecar.istio.io/inject\": \"true\"}}]"
 ----
 
 Now, substitute the configuration of the deployment with the configuration of the file `deployment.yaml`:
@@ -17,12 +27,21 @@ Now, substitute the configuration of the deployment with the configuration of th
 * Liveness and readiness probes.
 * Injecting the variable HOST using the pod name. This is the configuration that breaks the probes.
 
-[source, bash]
+This is the content that you have to modify:
+[source, yaml]
 ----
+          env:
+            - name: HOST
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: PORT
+              value: '8080'
           readinessProbe:
             httpGet:
               path: /
-              port: 3000
+              port: 8080
               scheme: HTTP
             timeoutSeconds: 1
             periodSeconds: 10
@@ -31,26 +50,22 @@ Now, substitute the configuration of the deployment with the configuration of th
           livenessProbe:
             httpGet:
               path: /
-              port: 3000
+              port: 8080
               scheme: HTTP
             timeoutSeconds: 1
             periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
-          env:
-            - name: HOST
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
 ----
 
-
+////
 ## 2. How to deploy app on OCP manually
 
 [source, bash]
 ----
-oc new-app nodejs:14~https://github.com/alvarolop/nodejs-tester-server
+oc new-app nodejs:12~https://github.com/alvarolop/nodejs-tester-server
+
+oc new-app --name=nodejs-fixed-server-A https://github.com/alvarolop/nodejs-tester-server
 ----
 
 After creating the application, you may need to do the following:
@@ -65,9 +80,9 @@ oc patch deployment nodejs-tester-server --type='json' -p "[{\"op\": \"add\", \"
 # Add liveness and readiness probes.
 oc set probe deployment/nodejs-tester-server --liveness --get-url= 
 ----
+////
 
-
-## 3. How to create image in local
+## Annex. How to create image in local
 
 [source, bash]
 ----

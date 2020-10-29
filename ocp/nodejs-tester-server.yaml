@@ -29,39 +29,37 @@ spec:
     spec:
       containers:
       - env:
-        - name: HOST
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.name
-        - name: PORT
-          value: "8080"
-        image: image-registry.openshift-image-registry.svc:5000/istio-testing/nodejs-tester-server@sha256:be0db748f98da6de8d0cbaa681a003f48be5af24e414d992495303e6536702a3
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          failureThreshold: 3
+          - name: HOST
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: PORT
+            value: '8080'
+        readinessProbe:
           httpGet:
-            host: $HOSTNAME
             path: /
             port: 8080
             scheme: HTTP
+          timeoutSeconds: 1
           periodSeconds: 10
           successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
           timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        image: image-registry.openshift-image-registry.svc:5000/istio-testing/nodejs-tester-server@sha256:be0db748f98da6de8d0cbaa681a003f48be5af24e414d992495303e6536702a3
+        imagePullPolicy: IfNotPresent
         name: nodejs-tester-server
         ports:
         - containerPort: 8080
           protocol: TCP
-        readinessProbe:
-          failureThreshold: 3
-          httpGet:
-            host: $HOSTNAME
-            path: /
-            port: 8080
-            scheme: HTTP
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
         resources: {}
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
