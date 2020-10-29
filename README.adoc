@@ -28,6 +28,9 @@ Now, substitute the configuration of the deployment with the configuration of th
 * Injecting the variable HOST using the pod name. This is the configuration that breaks the probes.
 
 This is the content that you have to modify:
+
+
+.Invalid configuration 
 [source, yaml]
 ----
           env:
@@ -36,6 +39,32 @@ This is the content that you have to modify:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.name
+            - name: PORT
+              value: '8080'
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+----
+
+.Valid configuration 
+[source, yaml]
+----
+          env:
             - name: PORT
               value: '8080'
           readinessProbe:
