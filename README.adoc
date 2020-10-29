@@ -30,7 +30,7 @@ Now, substitute the configuration of the deployment with the configuration of th
 This is the content that you have to modify:
 
 
-.Invalid configuration 
+### Option 1: Invalid configuration 
 [source, yaml]
 ----
           env:
@@ -61,7 +61,7 @@ This is the content that you have to modify:
             failureThreshold: 3
 ----
 
-.Valid configuration 
+### Option 2: Valid configuration 
 [source, yaml]
 ----
           env:
