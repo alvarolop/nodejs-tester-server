@@ -9,16 +9,10 @@ The code is based on the following repository from the Red Hat Software Collecti
 [source, bash]
 ----
 # Create namespace for the application
-oc new-project istio-testing --display-name="Istio Testing"
+oc new-project istio-probes-testing --display-name="Istio app to test Probes"
 
 # Add your namespace to the SMMR
 oc apply -f ocp/ServiceMeshMember.yaml
-
-# Create application using s2i
-oc new-app nodejs:12~https://github.com/alvarolop/nodejs-tester-server
-
-# Autoinject sidecar using the Istio annotation
-oc patch deployment nodejs-tester-server --type='json' -p "[{\"op\": \"add\", \"path\": \"/spec/template/metadata/annotations\", \"value\": {\"sidecar.istio.io/inject\": \"true\"}}]"
 ----
 
 Now, substitute the configuration of the deployment with the configuration of the file `deployment.yaml`:
@@ -31,118 +25,190 @@ This is the content that you have to modify:
 
 
 ### Option 1: Invalid configuration 
+
+[source, bash]
+----
+# Create application using s2i
+oc new-app nodejs:12~https://github.com/alvarolop/nodejs-tester-server --name=nodejs-tester-http
+
+# Autoinject sidecar using the Istio annotation
+oc patch deployment nodejs-tester-http --type='json' -p "[{\"op\": \"add\", \"path\": \"/spec/template/metadata/annotations\", \"value\": {\"sidecar.istio.io/inject\": \"true\"}}]"
+----
+
 [source, yaml]
 ----
-          env:
-            - name: HOST
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: PORT
-              value: '8080'
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
-            timeoutSeconds: 1
-            periodSeconds: 10
-            successThreshold: 1
-            failureThreshold: 3
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
-            timeoutSeconds: 1
-            periodSeconds: 10
-            successThreshold: 1
-            failureThreshold: 3
+        env:
+          - name: HOST
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          - name: PORT
+            value: '8080'
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
 ----
 
 ### Option 2: Valid configuration 
+
+[source, bash]
+----
+# Create application using s2i
+oc new-app nodejs:12~https://github.com/alvarolop/nodejs-tester-server --name=nodejs-tester-workaround
+
+# Autoinject sidecar using the Istio annotation
+oc patch deployment nodejs-tester-workaround --type='json' -p "[{\"op\": \"add\", \"path\": \"/spec/template/metadata/annotations\", \"value\": {\"sidecar.istio.io/inject\": \"true\"}}]"
+----
+
 [source, yaml]
 ----
-          env:
-            - name: PORT
-              value: '8080'
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
-            timeoutSeconds: 1
-            periodSeconds: 10
-            successThreshold: 1
-            failureThreshold: 3
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
-            timeoutSeconds: 1
-            periodSeconds: 10
-            successThreshold: 1
-            failureThreshold: 3
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          - name: PORT
+            value: '8080'
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
 ----
 
 ### Option 3: Invalid configuration using curl command
+
+[source, bash]
+----
+# Create application using s2i
+oc new-app nodejs:12~https://github.com/alvarolop/nodejs-tester-server --name=nodejs-tester-command
+
+# Autoinject sidecar using the Istio annotation
+oc patch deployment nodejs-tester-command --type='json' -p "[{\"op\": \"add\", \"path\": \"/spec/template/metadata/annotations\", \"value\": {\"sidecar.istio.io/inject\": \"true\"}}]"
+----
+
 [source, yaml]
 ----
-          env:
-            - name: HOST
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: PORT
-              value: '8080'
-          readinessProbe:
-            exec:
-              command:
-                - /bin/bash
-                - '-c'
-                - 'curl http://$HOSTNAME:$PORT'
-            timeoutSeconds: 1
-            periodSeconds: 10
-            successThreshold: 1
-            failureThreshold: 3
-          livenessProbe:
-            exec:
-              command:
-                - /bin/bash
-                - '-c'
-                - 'curl http://$HOSTNAME:$PORT'
-            timeoutSeconds: 1
-            periodSeconds: 10
-            successThreshold: 1
-            failureThreshold: 3
+        env:
+          - name: HOST
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          - name: PORT
+            value: '8080'
+        readinessProbe:
+          exec:
+            command:
+              - /bin/bash
+              - '-c'
+              - 'curl http://$HOSTNAME:$PORT'
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+              - /bin/bash
+              - '-c'
+              - 'curl http://$HOSTNAME:$PORT'
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
 ----
 
-////
-## 2. How to deploy app on OCP manually
+
+### Option 4: Invalid configuration using curl command and injecting IP using an env variable
 
 [source, bash]
 ----
-oc new-app nodejs:12~https://github.com/alvarolop/nodejs-tester-server
+# Create application using s2i
+oc new-app nodejs:12~https://github.com/alvarolop/nodejs-tester-server --name=nodejs-tester-ip
 
-oc new-app --name=nodejs-fixed-server-A https://github.com/alvarolop/nodejs-tester-server
+# Autoinject sidecar using the Istio annotation
+oc patch deployment nodejs-tester-ip --type='json' -p "[{\"op\": \"add\", \"path\": \"/spec/template/metadata/annotations\", \"value\": {\"sidecar.istio.io/inject\": \"true\"}}]"
 ----
 
-After creating the application, you may need to do the following:
-
-[source, bash]
+[source, yaml]
 ----
-# Include the istio annotation
-oc patch deployment nodejs-tester-server --type='json' -p "[{\"op\": \"add\", \"path\": \"/spec/template/metadata/annotations\", \"value\": {\"sidecar.istio.io/inject\": \"true\"}}]"
-
-# Add an environment variable to listen on the pod name.
-
-# Add liveness and readiness probes.
-oc set probe deployment/nodejs-tester-server --liveness --get-url= 
+        env:
+          - name: HOST
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          - name: PORT
+            value: '8080'
+        readinessProbe:
+          exec:
+            command:
+              - /bin/bash
+              - '-c'
+              - 'curl http://$POD_IP:$PORT'
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+              - /bin/bash
+              - '-c'
+              - 'curl http://$POD_IP:$PORT'
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
 ----
-////
+
+
 
 ## Annex. How to create image in local
 
